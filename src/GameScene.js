@@ -20,7 +20,7 @@ class GameScene extends Phaser.Scene {
             energy: 50,      
             maxEnergy: 50,   
             equipment: {
-                weapon: null, headwear: null, clothes: null, belt: null,
+                weapon: null, hat: null, clothes: null, belt: null,
                 shoes: null, ring: null, bracelet: null, necklace: null,
                 jade: null, amulet: null, mirror: null, seal: null
             },
@@ -36,9 +36,9 @@ class GameScene extends Phaser.Scene {
             ]
         };
 
-        this.equipmentTypes = ['weapon', 'headwear', 'clothes', 'belt', 'shoes', 'ring', 'bracelet', 'necklace', 'jade', 'amulet', 'mirror', 'seal'];
+        this.equipmentTypes = ['weapon', 'hat', 'clothes', 'belt', 'shoes', 'ring', 'bracelet', 'necklace', 'jade', 'amulet', 'mirror', 'seal'];
         this.slotAbbreviations = {
-            weapon: 'WP', headwear: 'HW', clothes: 'CL', belt: 'BT',
+            weapon: 'WP', hat: 'HT', clothes: 'CL', belt: 'BT',
             shoes: 'SH', ring: 'RG', bracelet: 'BR', necklace: 'NL',
             jade: 'JD', amulet: 'AM', mirror: 'MR', seal: 'SL'
         };
@@ -124,9 +124,9 @@ class GameScene extends Phaser.Scene {
         this.energyBarFill.y = 380 + (130 * (1 - ratio)); 
     }
 
-    createEquipmentSlotsHUD() {
+ createEquipmentSlotsHUD() {
         let startX = 65; let stepX = 68;
-        let row1Y = 810; let row2Y = 890;
+        let row1Y = 810; let row2Y = 890; 
 
         this.equipmentTypes.forEach((type, index) => {
             let col = index % 6;
@@ -137,9 +137,13 @@ class GameScene extends Phaser.Scene {
             let box = this.add.rectangle(posX, posY, 60, 68, 0x222222).setStrokeStyle(2, 0x555555).setDepth(8).setInteractive({ useHandCursor: true });
             let itemIconPlaceholder = this.add.rectangle(posX, posY, 44, 52, 0x000000, 0.4).setDepth(9);
 
+            // --- THÊM DÒNG NÀY: Tạo đối tượng ảnh ẩn để chờ hiển thị đồ mặc thực tế ---
+            let itemIcon = this.add.image(posX, posY, '').setDepth(10).setVisible(false);
+
             box.on('pointerdown', () => this.showSlotTooltip(type, posX, posY));
 
-            this.hudSlots[type] = { box, itemIconPlaceholder };
+            // Lưu trữ thêm itemIcon vào HUD
+            this.hudSlots[type] = { box, itemIconPlaceholder, itemIcon };
         });
     }
 
@@ -147,13 +151,19 @@ class GameScene extends Phaser.Scene {
         this.equipmentTypes.forEach(type => {
             let item = this.player.equipment[type];
             let slot = this.hudSlots[type];
+            
             if (item) {
                 let colorHex = Phaser.Display.Color.HexStringToColor(this.rarityColors[item.rarity]).color;
                 slot.box.setStrokeStyle(3, colorHex);
-                slot.itemIconPlaceholder.setFillStyle(colorHex, 0.2);
+                slot.itemIconPlaceholder.setVisible(false); // Ẩn ô đen trống đi
+                
+                // --- ĐÃ PHÁT SÁNG: Nạp ảnh thật, phóng to vừa vặn và hiện lên! ---
+                let key = `item_${type}_${item.rarity}`;
+                slot.itemIcon.setTexture(key).setDisplaySize(44, 52).setVisible(true);
             } else {
                 slot.box.setStrokeStyle(2, 0x555555);
-                slot.itemIconPlaceholder.setFillStyle(0x000000, 0.4);
+                slot.itemIconPlaceholder.setVisible(true); // Hiện ô đen trống
+                slot.itemIcon.setVisible(false); // Ẩn ảnh thật đi
             }
         });
     }
@@ -305,25 +315,35 @@ class GameScene extends Phaser.Scene {
         let hpDiffText = hpDiff >= 0 ? ` (+${hpDiff} ⬆)` : ` (${hpDiff} ⬇)`;
         let hpDiffColor = hpDiff >= 0 ? '#4caf50' : '#f44336';
 
-        // PANEL TRÁI
+      // --- PANEL TRÁI: HIỂN THỊ ẢNH MÓN MỚI NHẬN ĐƯỢC ---
         let newStatsText = `Công: +${newItem.atk}\n\nMáu: +${newItem.hp}\n\n${newItem.specialStat ? newItem.specialStat.toUpperCase() + ': +' + newItem.specialValue + '%' : '(Không có)'}`;
         let newPanel = this.add.text(70, 360, newStatsText, { font: '15px Arial', fill: '#ffffff', lineSpacing: 4 });
-        let newItemPlaceholder = this.add.rectangle(130, 300, 50, 50, 0x000000, 0.4).setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(rarityColor).color);
-        let newItemLabel = this.add.text(130, 300, 'Ảnh\nMón Mới', { font: '10px Arial', fill: '#888', align: 'center' }).setOrigin(0.5);
+        
+        // Thay thế Placeholder đen bằng ảnh PNG thật của món đồ mới!
+        let keyNew = `item_${newItem.type}_${newItem.rarity}`;
+        let newItemSprite = this.add.image(130, 300, keyNew).setDisplaySize(50, 50).setDepth(101);
+
         let diffAtkText = this.add.text(165, 377, atkDiffText, { font: 'bold 15px Arial', fill: atkDiffColor });
         let diffHpText = this.add.text(165, 415, hpDiffText, { font: 'bold 15px Arial', fill: hpDiffColor });
-        popup.add([newPanel, diffAtkText, diffHpText, newItemPlaceholder, newItemLabel]);
+        popup.add([newPanel, diffAtkText, diffHpText, newItemSprite]);
 
-        // PANEL PHẢI
+        // --- PANEL PHẢI: HIỂN THỊ ẢNH MÓN ĐANG MẶC ---
         let oldStatsText = currentItem ? 
             `Công: +${currentItem.atk}\n\nMáu: +${currentItem.hp}\n\n${currentItem.specialStat ? currentItem.specialStat.toUpperCase() + ': +' + currentItem.specialValue + '%' : '(Không có)'}` 
             : `\n(Ô Trống)`;
         let oldPanel = this.add.text(290, 360, oldStatsText, { font: '15px Arial', fill: '#aaaaaa', lineSpacing: 4 });
-        let oldColor = currentItem ? this.rarityColors[currentItem.rarity] : '#555555';
-        let oldItemPlaceholder = this.add.rectangle(350, 300, 50, 50, 0x000000, 0.4).setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(oldColor).color);
-        let oldItemLabel = this.add.text(350, 300, currentItem ? `Lv.${currentItem.level}\nẢnh Cũ` : 'Trống', { font: '10px Arial', fill: '#888', align: 'center' }).setOrigin(0.5);
-        popup.add([oldPanel, oldItemPlaceholder, oldItemLabel]);
-
+        
+        // Nếu đang mặc đồ, lôi ảnh cũ ra vẽ. Nếu trống thì vẽ ô đen xám
+        if (currentItem) {
+            let keyOld = `item_${currentItem.type}_${currentItem.rarity}`;
+            let oldItemSprite = this.add.image(350, 300, keyOld).setDisplaySize(50, 50).setDepth(101);
+            popup.add(oldItemSprite);
+        } else {
+            let oldItemPlaceholder = this.add.rectangle(350, 300, 50, 50, 0x000000, 0.4).setStrokeStyle(2, 0x555555);
+            let oldItemLabel = this.add.text(350, 300, 'Trống', { font: '10px Arial', fill: '#888' }).setOrigin(0.5);
+            popup.add([oldItemPlaceholder, oldItemLabel]);
+        }
+        popup.add(oldPanel);
         // NÚT TRANG BỊ
         let equipBtn = this.add.rectangle(170, 590, 150, 45, 0x4caf50).setInteractive({ useHandCursor: true });
         let equipText = this.add.text(170, 590, 'MẶC ĐỒ', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
@@ -379,7 +399,7 @@ class GameScene extends Phaser.Scene {
         this.updateResourceHUD();
     }
 
-    showProfilePopup() {
+    showcreateEquipmentofilePopup() {
         if (this.isPopupOpen) return;
         this.isPopupOpen = true;
 
