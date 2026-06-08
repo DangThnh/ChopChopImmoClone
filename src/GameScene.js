@@ -8,71 +8,56 @@ class GameScene extends Phaser.Scene {
             this.add.image(270, 480, 'bg').setDisplaySize(540, 960).setDepth(0);
         }
 
-        // 1. TẢI DỮ LIỆU TỪ TRÌNH DUYỆT (LOAD GAME)
+        // =======================================================
+        // 1. HỆ THỐNG LOAD GAME (AN TOÀN TUYỆT ĐỐI)
         // =======================================================
         let savedData = localStorage.getItem('idleChopChopSave');
 
+        // Khởi tạo khung dữ liệu chuẩn ĐẦY ĐỦ nhất
+        let defaultPlayerState = {
+            level: 1,
+            exp: 0,
+            gold: 200, 
+            treeLevel: 1, 
+            combatPower: 100,
+            energy: 50,      
+            maxEnergy: 50,   
+            equipment: {
+                weapon: null, hat: null, clothes: null, belt: null,
+                shoes: null, ring: null, bracelet: null, necklace: null,
+                jade: null, amulet: null, mirror: null, seal: null
+            },
+            stats: {
+                hp: 100, atk: 20, def: 10,
+                crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
+                k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
+            },
+            activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
+            spiritList: [
+                { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
+                { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
+            ]
+        };
+
         if (savedData) {
-            // NẾU CÓ DỮ LIỆU CŨ: Ép kiểu từ văn bản thành Object lại
-            this.player = JSON.parse(savedData);
-            console.log("Đã nạp lại tiến trình game cũ!");
+            try {
+                let parsedData = JSON.parse(savedData);
+                // Dùng Object.assign để hợp nhất: Dữ liệu tải về sẽ đè lên dữ liệu mặc định.
+                // Nếu bản save cũ thiếu trường mới (ví dụ thiếu energy), nó sẽ lấy giá trị từ bản mặc định bù vào!
+                this.player = Object.assign({}, defaultPlayerState, parsedData);
+                console.log("🟢 [HỆ THỐNG]: Nạp thành công tiến trình cũ!");
+            } catch (e) {
+                console.error("🔴 [HỆ THỐNG]: Bản Save bị lỗi (Corrupted). Khởi tạo lại từ đầu!");
+                this.player = defaultPlayerState;
+            }
         } else {
-            // NẾU CHƯA CHƠI BAO GIỜ: Tạo dữ liệu mặc định ban đầu
-            this.player = {
-                level: 1,
-                exp: 0,
-                gold: 200, 
-                treeLevel: 1, 
-                combatPower: 100,
-                energy: 50,      
-                maxEnergy: 50,   
-                equipment: {
-                    weapon: null, hat: null, clothes: null, belt: null,
-                    shoes: null, ring: null, bracelet: null, necklace: null,
-                    jade: null, amulet: null, mirror: null, seal: null
-                },
-                stats: {
-                    hp: 100, atk: 20, def: 10,
-                    crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
-                    k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
-                },
-                activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
-                spiritList: [
-                    { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
-                    { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
-                ]
-            };
-            console.log("Đã tạo nhân vật mới!");
+            console.log("🟢 [HỆ THỐNG]: Không có bản Save cũ. Tạo nhân vật mới!");
+            this.player = defaultPlayerState;
         }
 
         // =======================================================
-        // 1. DATABASE: DỮ LIỆU NGƯỜI CHƠI (CORE STATE)
+        // 2. DICTIONARY & CONFIG
         // =======================================================
-        // this.player = {
-        //     level: 1,
-        //     exp: 0,
-        //     gold: 200, 
-        //     treeLevel: 1, 
-        //     combatPower: 100,
-        //     energy: 50,      
-        //     maxEnergy: 50,   
-        //     equipment: {
-        //         weapon: null, hat: null, clothes: null, belt: null,
-        //         shoes: null, ring: null, bracelet: null, necklace: null,
-        //         jade: null, amulet: null, mirror: null, seal: null
-        //     },
-        //     stats: {
-        //         hp: 100, atk: 20, def: 10,
-        //         crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
-        //         k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
-        //     },
-        //     activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
-        //     spiritList: [
-        //         { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
-        //         { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
-        //     ]
-        // };
-
         this.equipmentTypes = ['weapon', 'hat', 'clothes', 'belt', 'shoes', 'ring', 'bracelet', 'necklace', 'jade', 'amulet', 'mirror', 'seal'];
         this.slotAbbreviations = {
             weapon: 'WP', hat: 'HT', clothes: 'CL', belt: 'BT',
@@ -84,18 +69,17 @@ class GameScene extends Phaser.Scene {
         this.rarityNames = { common: 'Thường', uncommon: 'Ưu Tú', rare: 'Hiếm', epic: 'Ưu Việt', legendary: 'Huyền Thoại', mythic: 'Thần Thoại' };
         this.rarityColors = { common: '#ffffff', uncommon: '#4caf50', rare: '#2196f3', epic: '#9c27b0', legendary: '#ff9800', mythic: '#f44336' };
 
-       // MA TRẬN TỶ LỆ RƠI ĐỒ 10 CẤP TOÀN DIỆN (ĐÃ CÂN BẰNG)
         this.treeDropRates = {
             1:  { common: 0.90, uncommon: 0.10, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
             2:  { common: 0.80, uncommon: 0.20, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
             3:  { common: 0.70, uncommon: 0.30, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
-            4:  { common: 0.60, uncommon: 0.39, rare: 0.01, epic: 0.00, legendary: 0.00, mythic: 0.00 }, // Xanh dương xuất hiện 1%
-            5:  { common: 0.50, uncommon: 0.439, rare: 0.05, epic: 0.01, legendary: 0.001, mythic: 0.00 }, // Tím xuất hiện 1%, Cam xuất hiện 0.1%
+            4:  { common: 0.60, uncommon: 0.39, rare: 0.01, epic: 0.00, legendary: 0.00, mythic: 0.00 },
+            5:  { common: 0.50, uncommon: 0.439, rare: 0.05, epic: 0.01, legendary: 0.001, mythic: 0.00 },
             6:  { common: 0.40, uncommon: 0.439, rare: 0.10, epic: 0.05, legendary: 0.011, mythic: 0.00 },
             7:  { common: 0.30, uncommon: 0.40, rare: 0.20, epic: 0.08, legendary: 0.02, mythic: 0.00 },
             8:  { common: 0.20, uncommon: 0.35, rare: 0.30, epic: 0.11, legendary: 0.04, mythic: 0.00 },
-            9:  { common: 0.15, uncommon: 0.25, rare: 0.35, epic: 0.189, legendary: 0.06, mythic: 0.001 }, // Đỏ xuất hiện 0.1%
-            10: { common: 0.10, uncommon: 0.20, rare: 0.35, epic: 0.24, legendary: 0.10, mythic: 0.01 }  // Đỏ tăng lên 1%
+            9:  { common: 0.15, uncommon: 0.25, rare: 0.35, epic: 0.189, legendary: 0.06, mythic: 0.001 },
+            10: { common: 0.10, uncommon: 0.20, rare: 0.35, epic: 0.24, legendary: 0.10, mythic: 0.01 } 
         };
 
         this.isChopping = false;
@@ -104,43 +88,58 @@ class GameScene extends Phaser.Scene {
 
         this.treeUpgradeCosts = [0, 100, 300, 600, 1500, 3000, 5000, 8500, 12000, 17000, 25000];
 
+        // Khởi tạo Giao diện và Cập nhật chỉ số từ bản Save
         this.createGameUI();
         this.createEquipmentSlotsHUD(); 
+        
+        // --- CHÚ Ý: Bắt buộc phải vẽ lại Đồ hiển thị (Visual) sau khi Load file Save ---
+        this.updateEquipmentSlotsVisual(); 
+        
         this.recalculateCombatPower();
         this.updateResourceHUD(); 
 
-         this.energyRegenCountdown = 6; // 6 giây hồi 1 năng lượng
+        // =======================================================
+        // 3. THIẾT LẬP CÁC BỘ ĐẾM THỜI GIAN (HỒI THỂ LỰC & AUTO-SAVE)
+        // =======================================================
         
+        // A. Đếm ngược hồi thể lực
+        this.energyRegenCountdown = 6; 
         this.time.addEvent({
-            delay: 1000, // Chạy mỗi 1 giây (1000ms) để đếm ngược
+            delay: 1000, 
             callback: this.updateEnergyRegen,
+            callbackScope: this,
+            loop: true
+        });
+
+        // B. AUTO-SAVE MỖI 5 GIÂY (Giải pháp chống thất thoát dữ liệu 100%)
+        this.time.addEvent({
+            delay: 5000, 
+            callback: this.saveGame,
             callbackScope: this,
             loop: true
         });
     }
 
     createGameUI() {
-        // UI Lực Chiến
         this.cpText = this.add.text(270, 80, `LỰC CHIẾN: ${this.player.combatPower}`, { 
             font: 'bold 32px Arial', fill: '#ffeb3b', stroke: '#000', strokeThickness: 5 
         }).setOrigin(0.5).setDepth(10);
 
-        // UI HUD Tài nguyên
-        this.hudText = this.add.text(100, 30, `Đạo Hữu - Cấp: 1 | Exp: 0% | Linh Thạch: 0`, {
+        this.hudText = this.add.text(100, 30, `Đạo Hữu - Cấp: ${this.player.level} | Exp: 0% | Linh Thạch: ${this.player.gold}`, {
             font: 'bold 14px Arial', fill: '#ffffff', stroke: '#000', strokeThickness: 3
         }).setOrigin(0, 0.5).setDepth(10);
 
-        // UI Cấp Cây Thần
         this.treeLevelText = this.add.text(270, 150, `Cây Thần Cấp: ${this.player.treeLevel}`, { 
             font: 'bold 18px Arial', fill: '#ffffff', stroke: '#000', strokeThickness: 3 
         }).setOrigin(0.5).setDepth(10);
 
-        // Nút nâng cấp cây
+        // HIỆN THỊ GIÁ TIỀN CHÍNH XÁC KHI VỪA LOAD GAME VÀO
+        let initialUpgradeCostText = this.player.treeLevel >= 10 ? "MAX LEVEL" : `Nâng Cây: ${this.treeUpgradeCosts[this.player.treeLevel]} 💎`;
+        
         this.upgradeTreeBtn = this.add.rectangle(270, 740, 200, 45, 0x8b5a2b).setStrokeStyle(2, 0xffeb3b).setInteractive({ useHandCursor: true }).setDepth(10);
-        this.upgradeCostText = this.add.text(270, 740, `Nâng Cây: 100 💎`, { font: 'bold 16px Arial', fill: '#ffffff' }).setOrigin(0.5).setDepth(11);
+        this.upgradeCostText = this.add.text(270, 740, initialUpgradeCostText, { font: 'bold 16px Arial', fill: '#ffffff' }).setOrigin(0.5).setDepth(11);
         this.upgradeTreeBtn.on('pointerdown', () => this.upgradeTree());
 
-        // Cây Thần và Nhân vật
         this.sacredTree = this.add.sprite(270, 380, 'tree').setDepth(5);
         this.sacredTree.setScale(0.75); 
         this.sacredTree.setInteractive({ useHandCursor: true });
@@ -149,22 +148,23 @@ class GameScene extends Phaser.Scene {
 
         this.sacredTree.on('pointerdown', this.chopTree, this);
 
-       // 7. CỘT THỂ LỰC (Đã chuyển sang dùng tâm đáy) & BỘ ĐẾM THỜI GIAN
         this.energyBarBg = this.add.rectangle(510, 380, 16, 260, 0x333333).setStrokeStyle(2, 0xffffff).setDepth(10);
-        
-        // Đặt Origin về (0.5, 1) để thanh năng lượng rút từ trên xuống dưới
         this.energyBarFill = this.add.rectangle(510, 510, 16, 260, 0x4caf50).setOrigin(0.5, 1).setDepth(11); 
         
         this.buyEnergyBtn = this.add.rectangle(510, 220, 35, 35, 0xff9800).setStrokeStyle(2, 0xffffff).setInteractive({ useHandCursor: true }).setDepth(10);
         this.add.text(510, 220, '+⚡', { font: 'bold 16px Arial', fill: '#fff' }).setOrigin(0.5).setDepth(11);
         this.buyEnergyBtn.on('pointerdown', () => this.showBuyEnergyPopup());
 
-        // Dòng chữ đếm ngược thời gian hồi (Đặt ở bên trái cột năng lượng)
         this.energyTimerText = this.add.text(440, 300, 'Hồi sau:\n6s', {
             font: 'bold 12px Arial', fill: '#aaaaaa', align: 'center', lineSpacing: 4
         }).setOrigin(0.5).setDepth(10);
 
         this.updateEnergyBarVisual();
+
+        // Nút Avatar mở Bảng thông tin nhân vật
+        this.avatarBtn = this.add.rectangle(55, 60, 60, 60, 0x8b5a2b).setStrokeStyle(3, 0xffffff).setInteractive({ useHandCursor: true }).setDepth(10);
+        this.add.text(55, 60, 'AVATAR', { font: 'bold 10px Arial', fill: '#fff' }).setOrigin(0.5).setDepth(11);
+        this.avatarBtn.on('pointerdown', () => this.showProfilePopup());
     }
 
    updateEnergyBarVisual() {
@@ -686,13 +686,9 @@ class GameScene extends Phaser.Scene {
     // HỆ THỐNG LƯU TRỮ VÀ TẢI DỮ LIỆU (LOCAL STORAGE)
     // =======================================================
     
-    saveGame() {
-        // Chuyển toàn bộ object Player thành chuỗi văn bản JSON
+   saveGame() {
         let saveData = JSON.stringify(this.player);
-        
-        // Lưu vào bộ nhớ cục bộ của trình duyệt với chìa khóa (key) là 'idleChopChopSave'
         localStorage.setItem('idleChopChopSave', saveData);
-        
-        console.log("Đã lưu tiến trình game!");
+        console.log("💾 [HỆ THỐNG]: Đã Auto-save tiến trình game.");
     }
 }
