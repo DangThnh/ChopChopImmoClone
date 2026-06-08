@@ -14,6 +14,12 @@ class BootScene extends Phaser.Scene {
         this.load.image('monster_2', 'monster_2.png');
         this.load.image('monster_3', 'monster_3.png');
 
+            this.load.setPath('assets/audio/');
+        this.load.audio('sfx_chop', 'chop.mp3');
+        this.load.audio('sfx_drop', 'drop.mp3');
+        this.load.audio('sfx_equip', 'equip.mp3');
+        this.load.audio('sfx_sell', 'sell.mp3');
+        
           // =======================================================
         // VÒNG LẶP TỰ ĐỘNG TẢI 72 TRANG BỊ CHỈ TRONG 8 DÒNG CODE!
         // =======================================================

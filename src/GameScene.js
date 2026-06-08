@@ -99,6 +99,19 @@ class GameScene extends Phaser.Scene {
 
         this.treeUpgradeCosts = [0, 100, 400, 1200, 3500, 8000, 18000, 40000, 100000, 250000, 999999];
 
+        // --- KHỞI TẠO BỘ ÂM THANH (AUDIO MANAGER TẠI CHỖ) ---
+        if (this.cache.audio.exists('sfx_chop')) this.soundChop = this.sound.add('sfx_chop');
+        if (this.cache.audio.exists('sfx_drop')) this.soundDrop = this.sound.add('sfx_drop');
+        if (this.cache.audio.exists('sfx_equip')) this.soundEquip = this.sound.add('sfx_equip');
+        if (this.cache.audio.exists('sfx_sell')) this.soundSell = this.sound.add('sfx_sell');
+        
+        // (Tùy chọn) Bật nhạc nền nếu có
+        // if (this.cache.audio.exists('bgm') && !this.sound.get('bgm')) {
+        //     this.sound.play('bgm', { loop: true, volume: 0.4 });
+        // }
+
+        this.createGameUI();
+
         // Khởi tạo Giao diện và Cập nhật chỉ số từ bản Save
         this.createGameUI();
         this.createEquipmentSlotsHUD(); 
@@ -299,6 +312,8 @@ class GameScene extends Phaser.Scene {
 
         this.isChopping = true;
 
+        if (this.soundChop) this.soundChop.play();
+
         this.tweens.add({
             targets: this.character,
             scaleX: 0.9,  
@@ -309,13 +324,16 @@ class GameScene extends Phaser.Scene {
             onComplete: () => {
                 this.tweens.add({
                     targets: this.sacredTree,
-                    angle: { from: -5, to: 5 },
-                    duration: 40,
+                    angle: { from: -1, to: 1 },
+                    duration: 60,
                     yoyo: true,
                     repeat: 3,
                     onComplete: () => {
                         this.sacredTree.angle = 0; 
                         this.isChopping = false;   
+
+                        if (this.soundDrop) this.soundDrop.play();
+
                         this.generateRandomDrop();
                     }
                 });
@@ -443,6 +461,8 @@ class GameScene extends Phaser.Scene {
         let equipBtn = this.add.rectangle(170, 590, 150, 45, 0x4caf50).setInteractive({ useHandCursor: true });
         let equipText = this.add.text(170, 590, 'MẶC ĐỒ', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
         equipBtn.on('pointerdown', () => {
+
+              if (this.soundEquip) this.soundEquip.play();
             this.player.equipment[newItem.type] = newItem; 
             this.recalculateCombatPower();
             this.updateEquipmentSlotsVisual(); 
@@ -456,6 +476,8 @@ class GameScene extends Phaser.Scene {
          let sellBtn = this.add.rectangle(370, 590, 150, 45, 0xf44336).setInteractive({ useHandCursor: true });
         let sellText = this.add.text(370, 590, 'BÁN', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
         sellBtn.on('pointerdown', () => {
+
+            if (this.soundSell) this.soundSell.play();
             // --- BẢN ĐỒ GIÁ BÁN PHẨM CHẤT CHUẨN XÁC THEO YÊU CẦU CỦA CẬU ---
             const rarityPrices = {
                 common: 10,
