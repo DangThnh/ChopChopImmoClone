@@ -6,8 +6,13 @@ class BootScene extends Phaser.Scene {
     preload() {
         this.load.setPath('assets/images/');
         this.load.image('bg', 'bg.png');
+        this.load.image('bg_battle', 'bg_battle.png');
         this.load.image('tree', 'tree.png');
         this.load.image('character', 'character.png');
+
+        this.load.image('monster_1', 'monster_1.png');
+        this.load.image('monster_2', 'monster_2.png');
+        this.load.image('monster_3', 'monster_3.png');
 
           // =======================================================
         // VÒNG LẶP TỰ ĐỘNG TẢI 72 TRANG BỊ CHỈ TRONG 8 DÒNG CODE!

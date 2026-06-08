@@ -22,6 +22,7 @@ class GameScene extends Phaser.Scene {
             combatPower: 100,
             energy: 50,      
             maxEnergy: 50,   
+            pveStage: 1,
             equipment: {
                 weapon: null, hat: null, clothes: null, belt: null,
                 shoes: null, ring: null, bracelet: null, necklace: null,
@@ -69,6 +70,16 @@ class GameScene extends Phaser.Scene {
         this.rarityNames = { common: 'Thường', uncommon: 'Ưu Tú', rare: 'Hiếm', epic: 'Ưu Việt', legendary: 'Huyền Thoại', mythic: 'Thần Thoại' };
         this.rarityColors = { common: '#ffffff', uncommon: '#4caf50', rare: '#2196f3', epic: '#9c27b0', legendary: '#ff9800', mythic: '#f44336' };
 
+         // --- THÊM TỪ ĐIỂN DỊCH THUẬT THUỘC TÍNH ẨN ---
+        this.statNames = {
+            crit: 'Bạo Kích',
+            combo: 'Liên Kích',
+            counter: 'Phản Kích',
+            stun: 'Choáng',
+            dodge: 'Né Tránh',
+            lifesteal: 'Hút Máu'
+        };
+
         this.treeDropRates = {
             1:  { common: 0.90, uncommon: 0.10, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
             2:  { common: 0.80, uncommon: 0.20, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
@@ -86,7 +97,7 @@ class GameScene extends Phaser.Scene {
         this.isPopupOpen = false;
         this.hudSlots = {};
 
-        this.treeUpgradeCosts = [0, 100, 300, 600, 1500, 3000, 5000, 8500, 12000, 17000, 25000];
+        this.treeUpgradeCosts = [0, 100, 400, 1200, 3500, 8000, 18000, 40000, 100000, 250000, 999999];
 
         // Khởi tạo Giao diện và Cập nhật chỉ số từ bản Save
         this.createGameUI();
@@ -161,6 +172,8 @@ class GameScene extends Phaser.Scene {
 
         this.updateEnergyBarVisual();
 
+        this.createPvEButton();
+
         // Nút Avatar mở Bảng thông tin nhân vật
         this.avatarBtn = this.add.rectangle(55, 60, 60, 60, 0x8b5a2b).setStrokeStyle(3, 0xffffff).setInteractive({ useHandCursor: true }).setDepth(10);
         this.add.text(55, 60, 'AVATAR', { font: 'bold 10px Arial', fill: '#fff' }).setOrigin(0.5).setDepth(11);
@@ -175,7 +188,7 @@ class GameScene extends Phaser.Scene {
     }
 
  createEquipmentSlotsHUD() {
-        let startX = 65; let stepX = 68;
+        let startX = 100; let stepX = 68;
         let row1Y = 810; let row2Y = 890; 
 
         this.equipmentTypes.forEach((type, index) => {
@@ -218,6 +231,7 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+   // Tooltip chi tiết ô đồ khi click
     showSlotTooltip(type, x, y) {
         if (this.isPopupOpen) return;
         this.isPopupOpen = true;
@@ -231,18 +245,31 @@ class GameScene extends Phaser.Scene {
             tooltip.destroy();
         });
 
+        // Đẩy Tooltip lùi lên trên 110px so với tọa độ của ô đồ
         let boxY = y - 110; 
         let panel = this.add.rectangle(x, boxY, 180, 140, 0x111111, 0.95).setStrokeStyle(2, 0x8b5a2b);
         
+        // --- TỪ ĐIỂN DỊCH TÊN 12 LOẠI TRANG BỊ ---
+        const typeNames = {
+            weapon: 'Vũ Khí', headwear: 'Mũ', clothes: 'Áo', belt: 'Đai Lưng',
+            shoes: 'Giày', ring: 'Nhẫn', bracelet: 'Vòng Tay', necklace: 'Dây Chuyền',
+            jade: 'Ngọc Bội', amulet: 'Bùa Chú', mirror: 'Gương', seal: 'Ấn Chú'
+        };
+
         let contentText = "";
+        let translatedType = typeNames[type] || type.toUpperCase();
+
         if (item) {
-            contentText = `${item.type.toUpperCase()} (Lv.${item.level})\n` +
+            // SỬA: Đọc tên Tiếng Việt từ this.statNames cho dòng thuộc tính ẩn
+            let specialText = item.specialStat ? `${this.statNames[item.specialStat]}: +${item.specialValue}%` : '';
+            
+            contentText = `${translatedType} (Lv.${item.level})\n` +
                           `Phẩm: ${this.rarityNames[item.rarity]}\n` +
                           `Công: +${item.atk}\n` +
                           `Máu: +${item.hp}\n` +
-                          `${item.specialStat ? item.specialStat.toUpperCase() + ': +' + item.specialValue + '%' : ''}`;
+                          specialText;
         } else {
-            contentText = `${type.toUpperCase()}\n\n(Chưa Trang Bị)`;
+            contentText = `${translatedType}\n\n(Chưa Trang Bị)`;
         }
 
         let txt = this.add.text(x - 80, boxY - 60, contentText, { 
@@ -377,10 +404,11 @@ class GameScene extends Phaser.Scene {
         let hpDiffColor = hpDiff >= 0 ? '#4caf50' : '#f44336';
 
       // --- PANEL TRÁI: HIỂN THỊ ẢNH MÓN MỚI NHẬN ĐƯỢC ---
-        let newStatsText = `Công: +${newItem.atk}\n\nMáu: +${newItem.hp}\n\n${newItem.specialStat ? newItem.specialStat.toUpperCase() + ': +' + newItem.specialValue + '%' : '(Không có)'}`;
+        let newSpecialText = newItem.specialStat ? `${this.statNames[newItem.specialStat]}: +${newItem.specialValue}%` : '(Không có)';
+        let newStatsText = `Công: +${newItem.atk}\n\nMáu: +${newItem.hp}\n\n${newSpecialText}`;
+        
         let newPanel = this.add.text(70, 360, newStatsText, { font: '15px Arial', fill: '#ffffff', lineSpacing: 4 });
         
-        // Thay thế Placeholder đen bằng ảnh PNG thật của món đồ mới!
         let keyNew = `item_${newItem.type}_${newItem.rarity}`;
         let newItemSprite = this.add.image(130, 300, keyNew).setDisplaySize(50, 50).setDepth(101);
 
@@ -389,11 +417,17 @@ class GameScene extends Phaser.Scene {
         popup.add([newPanel, diffAtkText, diffHpText, newItemSprite]);
 
         // --- PANEL PHẢI: HIỂN THỊ ẢNH MÓN ĐANG MẶC ---
-        let oldStatsText = currentItem ? 
-            `Công: +${currentItem.atk}\n\nMáu: +${currentItem.hp}\n\n${currentItem.specialStat ? currentItem.specialStat.toUpperCase() + ': +' + currentItem.specialValue + '%' : '(Không có)'}` 
-            : `\n(Ô Trống)`;
-        let oldPanel = this.add.text(290, 360, oldStatsText, { font: '15px Arial', fill: '#aaaaaa', lineSpacing: 4 });
+        let oldStatsText = "";
+        if (currentItem) {
+            // SỬA: Đọc tên tiếng Việt từ this.statNames
+            let oldSpecialText = currentItem.specialStat ? `${this.statNames[currentItem.specialStat]}: +${currentItem.specialValue}%` : '(Không có)';
+            oldStatsText = `Công: +${currentItem.atk}\n\nMáu: +${currentItem.hp}\n\n${oldSpecialText}`;
+        } else {
+            oldStatsText = `\n(Ô Trống)`;
+        }
         
+        let oldPanel = this.add.text(290, 360, oldStatsText, { font: '15px Arial', fill: '#aaaaaa', lineSpacing: 4 });
+       
         // Nếu đang mặc đồ, lôi ảnh cũ ra vẽ. Nếu trống thì vẽ ô đen xám
         if (currentItem) {
             let keyOld = `item_${currentItem.type}_${currentItem.rarity}`;
@@ -475,6 +509,65 @@ class GameScene extends Phaser.Scene {
         this.updateResourceHUD();
 
          this.saveGame();
+    }
+
+    // =======================================================
+    // POPUP BẢNG THUỘC TÍNH CHI TIẾT NHÂN VẬT (PROFILE)
+    // =======================================================
+    showProfilePopup() {
+        if (this.isPopupOpen) return;
+        this.isPopupOpen = true;
+
+        let popup = this.add.container(0, 0).setDepth(200);
+        
+        // Màn đen che nền
+        let bgMask = this.add.rectangle(270, 480, 540, 960, 0x000000, 0.7).setInteractive();
+        // Bảng khung chính
+        let board = this.add.rectangle(270, 480, 460, 600, 0x1a1c1a).setStrokeStyle(4, 0xffeb3b);
+        popup.add([bgMask, board]);
+
+        let title = this.add.text(270, 220, "THÔNG TIN ĐẠO HỮU", { font: 'bold 24px Arial', fill: '#ffeb3b' }).setOrigin(0.5);
+        popup.add(title);
+
+        // KHU VỰC 1: Thuộc Tính Cơ Bản
+        let basicText = `--- THUỘC TÍNH CƠ BẢN ---\n` +
+                        `Cấp độ: ${this.player.level}\n` +
+                        `Công (ATK): ${this.player.stats.atk}\n` +
+                        `Thủ (DEF): ${this.player.stats.def}\n` +
+                        `Máu (HP): ${this.player.stats.hp}`;
+        let txtBasic = this.add.text(70, 270, basicText, { font: '14px Arial', fill: '#ffffff', lineSpacing: 4 });
+
+        // KHU VỰC 2: Thuộc Tính Chiến Đấu 
+        let spec = this.player.stats;
+        let specialText = `--- THUỘC TÍNH ĐẶC BIỆT ---\n` +
+                          `Bạo Kích: ${spec.crit.toFixed(1)}%\n` +
+                          `Liên Kích: ${spec.combo.toFixed(1)}%\n` +
+                          `Phản Kích: ${spec.counter.toFixed(1)}%\n` +
+                          `Choáng: ${spec.stun.toFixed(1)}%\n` +
+                          `Né Tránh: ${spec.dodge.toFixed(1)}%\n` +
+                          `Hút Máu: ${spec.lifesteal.toFixed(1)}%`;
+        let txtSpecial = this.add.text(70, 390, specialText, { font: '14px Arial', fill: '#4caf50', lineSpacing: 4 });
+
+        // KHU VỰC 3: Thuộc Tính Kháng
+        let resistText = `--- THUỘC TÍNH KHÁNG ---\n` +
+                         `Kháng Bạo: ${spec.k_crit.toFixed(1)}%\n` +
+                         `Kháng Liên Kích: ${spec.k_combo.toFixed(1)}%\n` +
+                         `Kháng Phản: ${spec.k_counter.toFixed(1)}%\n` +
+                         `Kháng Choáng: ${spec.k_stun.toFixed(1)}%\n` +
+                         `Kháng Né Tránh: ${spec.k_dodge.toFixed(1)}%\n` +
+                         `Kháng Hút Máu: ${spec.k_lifesteal.toFixed(1)}%`;
+        let txtResist = this.add.text(270, 390, resistText, { font: '14px Arial', fill: '#f44336', lineSpacing: 4 });
+        
+        popup.add([txtBasic, txtSpecial, txtResist]);
+
+        // Nút Đóng Popup
+        let closeBtn = this.add.rectangle(270, 720, 150, 45, 0xe0e0e0).setInteractive({ useHandCursor: true });
+        let closeText = this.add.text(270, 720, 'HỒI CUNG', { font: 'bold 16px Arial', fill: '#111' }).setOrigin(0.5);
+        closeBtn.on('pointerdown', () => {
+            this.isPopupOpen = false;
+            popup.destroy();
+        });
+        popup.add([closeBtn, closeText]);
     }
 
     showcreateEquipmentofilePopup() {
@@ -686,6 +779,286 @@ class GameScene extends Phaser.Scene {
     // HỆ THỐNG LƯU TRỮ VÀ TẢI DỮ LIỆU (LOCAL STORAGE)
     // =======================================================
     
+    // =======================================================
+    // GIAI ĐOẠN 4: HỆ THỐNG ĐẤU TRƯỜNG PVE (AUTO-BATTLE)
+    // =======================================================
+
+   // =======================================================
+    // GIAI ĐOẠN 4 (NÂNG CẤP): HỆ THỐNG VƯỢT ẢI PVE CỰC HẠN
+    // =======================================================
+
+    createPvEButton() {
+        // Vẽ nút Đánh Quái
+        this.pveBtn = this.add.rectangle(270, 210, 150, 45, 0xd32f2f).setStrokeStyle(2, 0xffffff).setInteractive({ useHandCursor: true }).setDepth(10);
+        this.pveText = this.add.text(270, 210, `VƯỢT ẢI ${this.player.pveStage}`, { font: 'bold 16px Arial', fill: '#ffffff' }).setOrigin(0.5).setDepth(11);
+        
+        this.pveBtn.on('pointerdown', () => {
+            if (this.isChopping || this.isPopupOpen) return;
+            this.startPvEBattle();
+        });
+    }
+
+ // THUẬT TOÁN TẠO QUÁI VẬT TĂNG TIẾN (SCALING MONSTER 2.0 - HARDCORE)
+    generateMonsterData() {
+        let stage = this.player.pveStage; 
+        
+        // 1. CÔNG THỨC MÁU & CÔNG TĂNG THEO LŨY THỪA (Exponential)
+        // Stage 1 -> Multiplier ~1.3
+        // Stage 20 -> Multiplier ~30
+        // Stage 50 -> Multiplier ~120
+        let baseMultiplier = 1 + (stage * 0.4);
+        let expMultiplier = Math.pow(1.08, stage); // Tăng 8% sức mạnh mỗi ải cộng dồn
+        
+        let finalMultiplier = baseMultiplier * expMultiplier;
+
+        // 2. TÊN QUÁI NGẪU NHIÊN CHẾ DIỄU
+        let names = ["Huyết Tu La", "Độc Giác Yêu", "Bạch Cốt Tinh", "Hắc Phong Quái", "Cửu Mệnh Miêu", "Lục Nhĩ Hầu", "Ngưu Ma Vương"];
+        let randomName = names[Phaser.Math.Between(0, names.length - 1)];
+
+        // 3. THIẾT LẬP CHỈ SỐ CƠ BẢN CỰC ĐỘ
+        let monsterData = {
+            name: `${randomName} (Ải ${stage})`,
+            level: stage,
+            hp: Math.floor(600 * finalMultiplier),    // Máu trâu hơn
+            maxHp: Math.floor(600 * finalMultiplier),
+            atk: Math.floor(45 * finalMultiplier),    // Đánh đau hơn
+            def: Math.floor(20 * finalMultiplier),
+            
+            // 4. CHỈ SỐ ẨN: KHÔNG THỂ BỊ KHINH THƯỜNG Ở ẢI CAO
+            stats: {
+                crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
+                k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
+            }
+        };
+
+        // Từ Ải 5 trở đi, Quái bắt đầu có chỉ số ẩn ác liệt
+        if (stage >= 5) {
+            // Tối đa 60% cho một dòng để không bị bất tử
+            let statPower = Math.min(60, stage * 1.5); 
+            let resistPower = Math.min(60, stage * 2);
+
+            monsterData.stats.crit = statPower;
+            monsterData.stats.combo = statPower * 0.8;
+            monsterData.stats.counter = statPower;
+            monsterData.stats.stun = Math.min(40, stage * 0.8); // Giới hạn stun tối đa 40% để người chơi còn cơ hội
+            monsterData.stats.dodge = statPower;
+            monsterData.stats.lifesteal = statPower * 0.5;
+
+            // Kháng cực kỳ trâu, ép người chơi phải cày dòng chỉ số thật cao mới xuyên thủng được
+            monsterData.stats.k_crit = resistPower;
+            monsterData.stats.k_combo = resistPower;
+            monsterData.stats.k_counter = resistPower;
+            monsterData.stats.k_stun = resistPower;
+            monsterData.stats.k_dodge = resistPower;
+            monsterData.stats.k_lifesteal = resistPower;
+        }
+
+        return monsterData;
+    }
+
+    startPvEBattle() {
+        this.isPopupOpen = true; 
+
+        this.battleContainer = this.add.container(0, 0).setDepth(300);
+        
+        // VẼ BACKGROUND CHIẾN ĐẤU (Che kín màn hình)
+        let bgMask = this.add.rectangle(270, 480, 540, 960, 0x000000, 1).setInteractive();
+        let bgBattle = this.add.image(270, 480, 'bg_battle').setDisplaySize(540, 960).setAlpha(0.6); // Hơi tối lại để nổi bật nhân vật
+        let title = this.add.text(270, 150, `VƯỢT ẢI ${this.player.pveStage}`, { font: 'bold 36px Arial', fill: '#ff4444', stroke: '#fff', strokeThickness: 4 }).setOrigin(0.5);
+        
+        this.battleContainer.add([bgMask, bgBattle, title]);
+
+        this.recalculateCombatPower(); 
+        this.bPlayer = {
+            hp: this.player.stats.hp, maxHp: this.player.stats.hp,
+            atk: this.player.stats.atk, def: this.player.stats.def,
+            stats: Object.assign({}, this.player.stats), 
+            isStunned: false
+        };
+        this.bMonster = this.generateMonsterData();
+        this.bMonster.isStunned = false;
+
+        // VẼ NHÂN VẬT VÀ QUÁI (ĐÃ THU NHỎ LẠI THEO YÊU CẦU)
+        // Nhân vật bên Trái (Thu nhỏ scale từ 1.2 xuống 0.8)
+        this.bPlayerSprite = this.add.sprite(150, 620, 'character').setScale(-0.8, 0.8);
+        this.pHealthBg = this.add.rectangle(150, 740, 120, 15, 0x555555);
+        this.pHealthBar = this.add.rectangle(150, 740, 120, 15, 0x4caf50);
+        this.pHealthText = this.add.text(150, 740, `${this.bPlayer.hp}/${this.bPlayer.maxHp}`, { font: 'bold 12px Arial', fill: '#fff' }).setOrigin(0.5);
+        let pName = this.add.text(150, 760, "Đạo Hữu", { font: 'bold 14px Arial', fill: '#4caf50' }).setOrigin(0.5);
+        
+        // Quái vật Random bên Phải (Random từ monster_1 đến monster_3)
+        let randMonsterImg = `monster_${Phaser.Math.Between(1, 3)}`;
+        this.bMonsterSprite = this.add.sprite(390, 610, randMonsterImg).setScale(0.8);
+        this.mHealthBg = this.add.rectangle(390, 740, 120, 15, 0x555555);
+        this.mHealthBar = this.add.rectangle(390, 740, 120, 15, 0xff3333);
+        this.mHealthText = this.add.text(390, 740, `${this.bMonster.hp}/${this.bMonster.maxHp}`, { font: 'bold 12px Arial', fill: '#fff' }).setOrigin(0.5);
+        let mName = this.add.text(390, 760, this.bMonster.name, { font: 'bold 14px Arial', fill: '#ff3333' }).setOrigin(0.5);
+
+        this.bLogText = this.add.text(270, 400, "Trận chiến bắt đầu...", { font: '16px Arial', fill: '#fff', align: 'center', lineSpacing: 5 }).setOrigin(0.5);
+
+        this.battleContainer.add([this.bPlayerSprite, this.pHealthBg, this.pHealthBar, this.pHealthText, pName, 
+                                  this.bMonsterSprite, this.mHealthBg, this.mHealthBar, this.mHealthText, mName, this.bLogText]);
+
+        this.currentTurn = 1;
+        this.battleTimer = this.time.addEvent({
+            delay: 600, 
+            callback: this.executeBattleTurn,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    executeBattleTurn() {
+        let logs = [];
+
+        // 1. LƯỢT CỦA PLAYER
+        if (this.bPlayer.hp > 0 && !this.bPlayer.isStunned) {
+            let dmg = Math.max(1, this.bPlayer.atk - this.bMonster.def);
+            let dodgeChance = (this.bMonster.stats.dodge - this.bPlayer.stats.k_dodge) / 100;
+            
+            if (Math.random() < dodgeChance) {
+                logs.push(`${this.bMonster.name} Né Tránh!`);
+                this.showDamageText(this.bMonsterSprite, "NÉ TRÁNH", "#ffffff");
+            } else {
+                let critChance = (this.bPlayer.stats.crit - this.bMonster.stats.k_crit) / 100;
+                if (Math.random() < critChance) {
+                    dmg = Math.floor(dmg * 2);
+                    logs.push(`Bạn chém BẠO KÍCH: ${dmg}`);
+                    this.showDamageText(this.bMonsterSprite, `-${dmg} CRIT!`, "#ffeb3b");
+                    this.bPlayerSprite.scaleX = 0.9; // Scale giật hình tương đối với gốc 0.8
+                } else {
+                    logs.push(`Bạn chém: ${dmg}`);
+                    this.showDamageText(this.bMonsterSprite, `-${dmg}`, "#ff5722");
+                }
+                this.bMonster.hp -= dmg;
+
+                let lsChance = (this.bPlayer.stats.lifesteal - this.bMonster.stats.k_lifesteal) / 100;
+                if (Math.random() < lsChance) {
+                    let heal = Math.floor(dmg * 0.3);
+                    this.bPlayer.hp = Math.min(this.bPlayer.maxHp, this.bPlayer.hp + heal);
+                    logs.push(`Hút máu: +${heal}`);
+                    this.showDamageText(this.bPlayerSprite, `+${heal}`, "#4caf50");
+                }
+
+                let stunChance = (this.bPlayer.stats.stun - this.bMonster.stats.k_stun) / 100;
+                if (Math.random() < stunChance) {
+                    this.bMonster.isStunned = true;
+                    logs.push(`${this.bMonster.name} bị CHOÁNG!`);
+                    this.showDamageText(this.bMonsterSprite, "CHOÁNG!", "#2196f3");
+                }
+            }
+            
+            // Player vung vũ khí
+            this.tweens.add({ targets: this.bPlayerSprite, x: 200, scaleX: -0.9, yoyo: true, duration: 150 });
+        } else if (this.bPlayer.isStunned) {
+            logs.push("Bạn đang bị Choáng!");
+            this.bPlayer.isStunned = false; 
+        }
+
+        this.updateHealthBars();
+        if (this.bMonster.hp <= 0) {
+            this.endPvEBattle(true);
+            return;
+        }
+
+        // 2. LƯỢT CỦA QUÁI VẬT
+        if (!this.bMonster.isStunned) {
+            let mDmg = Math.max(1, this.bMonster.atk - this.bPlayer.def);
+            let pDodgeChance = (this.bPlayer.stats.dodge - this.bMonster.stats.k_dodge) / 100;
+
+            if (Math.random() < pDodgeChance) {
+                logs.push("Bạn Né Tránh thành công!");
+                this.showDamageText(this.bPlayerSprite, "NÉ TRÁNH", "#ffffff");
+            } else {
+                let mCritChance = (this.bMonster.stats.crit - this.bPlayer.stats.k_crit) / 100;
+                if (Math.random() < mCritChance) {
+                    mDmg = Math.floor(mDmg * 1.5);
+                    logs.push(`Quái cắn BẠO KÍCH: ${mDmg}`);
+                    this.showDamageText(this.bPlayerSprite, `-${mDmg} CRIT!`, "#ffeb3b");
+                } else {
+                    logs.push(`Quái cắn: ${mDmg}`);
+                    this.showDamageText(this.bPlayerSprite, `-${mDmg}`, "#ff3333");
+                }
+                this.bPlayer.hp -= mDmg;
+            }
+            
+            // Quái vung móng vuốt
+            this.tweens.add({ targets: this.bMonsterSprite, x: 340, yoyo: true, duration: 150 });
+        } else {
+            logs.push("Quái đang bị Choáng!");
+            this.bMonster.isStunned = false;
+        }
+
+        this.updateHealthBars();
+        this.bLogText.setText(`--- Hiệp ${this.currentTurn} ---\n` + logs.join('\n'));
+        this.currentTurn++;
+
+        if (this.bPlayer.hp <= 0) {
+            this.endPvEBattle(false);
+        }
+    }
+
+    updateHealthBars() {
+        let pRatio = Phaser.Math.Clamp(this.bPlayer.hp / this.bPlayer.maxHp, 0, 1);
+        this.tweens.add({ targets: this.pHealthBar, scaleX: pRatio, duration: 200, originX: 0 });
+        this.pHealthText.setText(`${Math.max(0, this.bPlayer.hp)}/${this.bPlayer.maxHp}`);
+
+        let mRatio = Phaser.Math.Clamp(this.bMonster.hp / this.bMonster.maxHp, 0, 1);
+        this.tweens.add({ targets: this.mHealthBar, scaleX: mRatio, duration: 200, originX: 0 });
+        this.mHealthText.setText(`${Math.max(0, this.bMonster.hp)}/${this.bMonster.maxHp}`);
+    }
+
+    showDamageText(targetSprite, text, color) {
+        let dmgText = this.add.text(targetSprite.x, targetSprite.y - 50, text, { 
+            font: 'bold 24px Arial', fill: color, stroke: '#000', strokeThickness: 4 
+        }).setOrigin(0.5).setDepth(310);
+
+        this.tweens.add({ targets: dmgText, y: targetSprite.y - 120, alpha: 0, duration: 1000, ease: 'Cubic.easeOut', onComplete: () => dmgText.destroy() });
+    }
+
+    endPvEBattle(isWin) {
+        this.battleTimer.remove(); 
+
+        let resultTitle = isWin ? "VƯỢT ẢI THÀNH CÔNG!" : "THẤT BẠI!";
+        let resultColor = isWin ? "#4caf50" : "#f44336";
+        
+        let rewardText = "";
+        if (isWin) {
+            // Phần thưởng tăng tịnh tiến theo số Ải
+            let goldReward = 50 * this.player.pveStage;
+            let energyReward = 5 + Math.floor(this.player.pveStage / 2); // Quà năng lượng lớn dần
+            
+            this.player.gold += goldReward;
+            this.player.energy += energyReward;
+            rewardText = `Phần thưởng:\n+${goldReward} Linh Thạch 💎\n+${energyReward} Thể Lực ⚡`;
+            
+            // TĂNG ẢI LÊN 1 ĐỂ LẦN SAU ĐÁNH QUÁI MẠNH HƠN
+            this.player.pveStage++;
+            this.pveText.setText(`VƯỢT ẢI ${this.player.pveStage}`); // Cập nhật chữ trên Nút
+
+            this.updateResourceHUD();
+            this.updateEnergyBarVisual();
+        } else {
+            rewardText = "Lực chiến quá yếu!\nHãy về chặt cây Rèn đồ thêm!";
+        }
+        
+        this.saveGame(); // LƯU GAME SAU KHI ĐÁNH XONG (Lưu lại chỉ số pveStage)
+
+        let resultPanel = this.add.rectangle(270, 480, 350, 200, 0x111111, 0.95).setStrokeStyle(3, Phaser.Display.Color.HexStringToColor(resultColor).color).setDepth(350);
+        let rTitle = this.add.text(270, 420, resultTitle, { font: 'bold 28px Arial', fill: resultColor }).setOrigin(0.5).setDepth(351);
+        let rReward = this.add.text(270, 470, rewardText, { font: '18px Arial', fill: '#fff', align: 'center', lineSpacing: 5 }).setOrigin(0.5).setDepth(351);
+        
+        let closeBtn = this.add.rectangle(270, 540, 120, 40, 0x555555).setInteractive({ useHandCursor: true }).setDepth(350);
+        let closeText = this.add.text(270, 540, "TRỞ VỀ", { font: 'bold 16px Arial', fill: '#fff' }).setOrigin(0.5).setDepth(351);
+
+        this.battleContainer.add([resultPanel, rTitle, rReward, closeBtn, closeText]);
+
+        closeBtn.on('pointerdown', () => {
+            this.battleContainer.destroy(); 
+            this.isPopupOpen = false;       
+        });
+    }
+
    saveGame() {
         let saveData = JSON.stringify(this.player);
         localStorage.setItem('idleChopChopSave', saveData);
