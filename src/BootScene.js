@@ -19,6 +19,20 @@ class BootScene extends Phaser.Scene {
         this.load.audio('sfx_drop', 'drop.mp3');
         this.load.audio('sfx_equip', 'equip.mp3');
         this.load.audio('sfx_sell', 'sell.mp3');
+
+           // --- 10 ÂM THANH MỚI THÊM VÀO ĐÂY ---
+        this.load.audio('bgm_main', 'bgm_main.mp3');
+        this.load.audio('bgm_battle', 'bgm_battle.mp3');
+        
+        this.load.audio('battle_start', 'battle_start.mp3');
+        this.load.audio('hit_normal', 'hit_normal.mp3');
+        this.load.audio('hit_crit', 'hit_crit.mp3');
+        this.load.audio('dodge', 'dodge.mp3');
+        this.load.audio('heal', 'heal.mp3');
+        this.load.audio('stun', 'stun.mp3');
+        
+        this.load.audio('win', 'win.mp3');
+        this.load.audio('lose', 'lose.mp3');
         
           // =======================================================
         // VÒNG LẶP TỰ ĐỘNG TẢI 72 TRANG BỊ CHỈ TRONG 8 DÒNG CODE!

@@ -99,16 +99,30 @@ class GameScene extends Phaser.Scene {
 
         this.treeUpgradeCosts = [0, 100, 400, 1200, 3500, 8000, 18000, 40000, 100000, 250000, 999999];
 
-        // --- KHỞI TẠO BỘ ÂM THANH (AUDIO MANAGER TẠI CHỖ) ---
-        if (this.cache.audio.exists('sfx_chop')) this.soundChop = this.sound.add('sfx_chop');
-        if (this.cache.audio.exists('sfx_drop')) this.soundDrop = this.sound.add('sfx_drop');
-        if (this.cache.audio.exists('sfx_equip')) this.soundEquip = this.sound.add('sfx_equip');
-        if (this.cache.audio.exists('sfx_sell')) this.soundSell = this.sound.add('sfx_sell');
+         // QUẢN LÝ NHẠC NỀN CHÍNH (Chỉ chạy khi không có trận đấu)
+        // Dừng nhạc battle nếu nó đang chạy (lúc thua/thắng quay lại)
+        if (this.sound.get('bgm_battle')) this.sound.stopByKey('bgm_battle');
         
-        // (Tùy chọn) Bật nhạc nền nếu có
-        // if (this.cache.audio.exists('bgm') && !this.sound.get('bgm')) {
-        //     this.sound.play('bgm', { loop: true, volume: 0.4 });
-        // }
+        // Bật nhạc main nếu nó chưa chạy
+        if (this.cache.audio.exists('bgm_main') && !this.sound.get('bgm_main')) {
+            this.sound.play('bgm_main', { loop: true, volume: 0.4 });
+        }
+
+        // TẢI SẴN ÂM THANH VÀO CACHE ĐỂ GỌI TRONG TRẬN ĐÁNH CHO MƯỢT
+        this.sfx = {
+            chop: this.sound.add('sfx_chop'),
+               drop: this.sound.add('sfx_drop'),
+            equip: this.sound.add('sfx_equip'),
+            sell: this.sound.add('sfx_sell'),
+            start: this.sound.add('battle_start'),
+            hit: this.sound.add('hit_normal'),
+            crit: this.sound.add('hit_crit'),
+            dodge: this.sound.add('dodge'),
+            heal: this.sound.add('heal'),
+            stun: this.sound.add('stun'),
+            win: this.sound.add('win'),
+            lose: this.sound.add('lose')
+        };
 
         this.createGameUI();
 
@@ -312,7 +326,9 @@ class GameScene extends Phaser.Scene {
 
         this.isChopping = true;
 
-        if (this.soundChop) this.soundChop.play();
+      
+         // --- SỬA Ở ĐÂY: DÙNG THIS.SFX.CHOP ---
+        if (this.sfx.chop) this.sfx.chop.play();
 
         this.tweens.add({
             targets: this.character,
@@ -462,7 +478,8 @@ class GameScene extends Phaser.Scene {
         let equipText = this.add.text(170, 590, 'MẶC ĐỒ', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
         equipBtn.on('pointerdown', () => {
 
-              if (this.soundEquip) this.soundEquip.play();
+            //  if (this.soundEquip) this.soundEquip.play();
+               if (this.sfx.equip) this.sfx.equip.play();
             this.player.equipment[newItem.type] = newItem; 
             this.recalculateCombatPower();
             this.updateEquipmentSlotsVisual(); 
@@ -477,7 +494,9 @@ class GameScene extends Phaser.Scene {
         let sellText = this.add.text(370, 590, 'BÁN', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
         sellBtn.on('pointerdown', () => {
 
-            if (this.soundSell) this.soundSell.play();
+
+          //  if (this.soundSell) this.soundSell.play();
+               if (this.sfx.sell) this.sfx.sell.play();
             // --- BẢN ĐỒ GIÁ BÁN PHẨM CHẤT CHUẨN XÁC THEO YÊU CẦU CỦA CẬU ---
             const rarityPrices = {
                 common: 10,
@@ -881,6 +900,15 @@ class GameScene extends Phaser.Scene {
     startPvEBattle() {
         this.isPopupOpen = true; 
 
+          // ĐỔI NHẠC NỀN: Tắt nhạc main, Bật nhạc battle dồn dập
+        this.sound.stopByKey('bgm_main');
+        if (this.cache.audio.exists('bgm_battle')) {
+            this.sound.play('bgm_battle', { loop: true, volume: 0.5 });
+        }
+        
+        // TIẾNG VÀO TRẬN (Keng!)
+        if (this.sfx.start) this.sfx.start.play();
+
         this.battleContainer = this.add.container(0, 0).setDepth(300);
         
         // VẼ BACKGROUND CHIẾN ĐẤU (Che kín màn hình)
@@ -933,7 +961,7 @@ class GameScene extends Phaser.Scene {
     executeBattleTurn() {
         let logs = [];
 
-        // 1. LƯỢT CỦA PLAYER
+        // --- 1. LƯỢT CỦA PLAYER ---
         if (this.bPlayer.hp > 0 && !this.bPlayer.isStunned) {
             let dmg = Math.max(1, this.bPlayer.atk - this.bMonster.def);
             let dodgeChance = (this.bMonster.stats.dodge - this.bPlayer.stats.k_dodge) / 100;
@@ -941,16 +969,19 @@ class GameScene extends Phaser.Scene {
             if (Math.random() < dodgeChance) {
                 logs.push(`${this.bMonster.name} Né Tránh!`);
                 this.showDamageText(this.bMonsterSprite, "NÉ TRÁNH", "#ffffff");
+                if (this.sfx.dodge) this.sfx.dodge.play(); // ÂM THANH: VÙ (NÉ)
             } else {
                 let critChance = (this.bPlayer.stats.crit - this.bMonster.stats.k_crit) / 100;
                 if (Math.random() < critChance) {
                     dmg = Math.floor(dmg * 2);
                     logs.push(`Bạn chém BẠO KÍCH: ${dmg}`);
                     this.showDamageText(this.bMonsterSprite, `-${dmg} CRIT!`, "#ffeb3b");
-                    this.bPlayerSprite.scaleX = 0.9; // Scale giật hình tương đối với gốc 0.8
+                    if (this.sfx.crit) this.sfx.crit.play(); // ÂM THANH: CHÉM BẠO KÍCH (NỔ TO)
+                    this.bPlayerSprite.scaleX = -0.9; 
                 } else {
                     logs.push(`Bạn chém: ${dmg}`);
                     this.showDamageText(this.bMonsterSprite, `-${dmg}`, "#ff5722");
+                    if (this.sfx.hit) this.sfx.hit.play();   // ÂM THANH: CHÉM THƯỜNG
                 }
                 this.bMonster.hp -= dmg;
 
@@ -960,6 +991,7 @@ class GameScene extends Phaser.Scene {
                     this.bPlayer.hp = Math.min(this.bPlayer.maxHp, this.bPlayer.hp + heal);
                     logs.push(`Hút máu: +${heal}`);
                     this.showDamageText(this.bPlayerSprite, `+${heal}`, "#4caf50");
+                    if (this.sfx.heal) this.sfx.heal.play(); // ÂM THANH: HỒI MÁU LẤP LÁNH
                 }
 
                 let stunChance = (this.bPlayer.stats.stun - this.bMonster.stats.k_stun) / 100;
@@ -967,10 +999,9 @@ class GameScene extends Phaser.Scene {
                     this.bMonster.isStunned = true;
                     logs.push(`${this.bMonster.name} bị CHOÁNG!`);
                     this.showDamageText(this.bMonsterSprite, "CHOÁNG!", "#2196f3");
+                    if (this.sfx.stun) this.sfx.stun.play(); // ÂM THANH: CHOÁNG (BOONG)
                 }
             }
-            
-            // Player vung vũ khí
             this.tweens.add({ targets: this.bPlayerSprite, x: 200, scaleX: -0.9, yoyo: true, duration: 150 });
         } else if (this.bPlayer.isStunned) {
             logs.push("Bạn đang bị Choáng!");
@@ -983,7 +1014,7 @@ class GameScene extends Phaser.Scene {
             return;
         }
 
-        // 2. LƯỢT CỦA QUÁI VẬT
+        // --- 2. LƯỢT CỦA QUÁI VẬT ---
         if (!this.bMonster.isStunned) {
             let mDmg = Math.max(1, this.bMonster.atk - this.bPlayer.def);
             let pDodgeChance = (this.bPlayer.stats.dodge - this.bMonster.stats.k_dodge) / 100;
@@ -991,20 +1022,21 @@ class GameScene extends Phaser.Scene {
             if (Math.random() < pDodgeChance) {
                 logs.push("Bạn Né Tránh thành công!");
                 this.showDamageText(this.bPlayerSprite, "NÉ TRÁNH", "#ffffff");
+                if (this.sfx.dodge) this.sfx.dodge.play(); // ÂM THANH NÉ
             } else {
                 let mCritChance = (this.bMonster.stats.crit - this.bPlayer.stats.k_crit) / 100;
                 if (Math.random() < mCritChance) {
                     mDmg = Math.floor(mDmg * 1.5);
                     logs.push(`Quái cắn BẠO KÍCH: ${mDmg}`);
                     this.showDamageText(this.bPlayerSprite, `-${mDmg} CRIT!`, "#ffeb3b");
+                    if (this.sfx.crit) this.sfx.crit.play(); // ÂM THANH BẠO KÍCH (CỦA QUÁI)
                 } else {
                     logs.push(`Quái cắn: ${mDmg}`);
                     this.showDamageText(this.bPlayerSprite, `-${mDmg}`, "#ff3333");
+                    if (this.sfx.hit) this.sfx.hit.play();   // ÂM THANH ĐÁNH THƯỜNG (CỦA QUÁI)
                 }
                 this.bPlayer.hp -= mDmg;
             }
-            
-            // Quái vung móng vuốt
             this.tweens.add({ targets: this.bMonsterSprite, x: 340, yoyo: true, duration: 150 });
         } else {
             logs.push("Quái đang bị Choáng!");
@@ -1041,11 +1073,15 @@ class GameScene extends Phaser.Scene {
     endPvEBattle(isWin) {
         this.battleTimer.remove(); 
 
+         this.sound.stopByKey('bgm_battle');
+
         let resultTitle = isWin ? "VƯỢT ẢI THÀNH CÔNG!" : "THẤT BẠI!";
         let resultColor = isWin ? "#4caf50" : "#f44336";
         
         let rewardText = "";
         if (isWin) {
+
+            if (this.sfx.win) this.sfx.win.play(); // TIẾNG THẮNG TRẬN
             // Phần thưởng tăng tịnh tiến theo số Ải
             let goldReward = 50 * this.player.pveStage;
             let energyReward = 5 + Math.floor(this.player.pveStage / 2); // Quà năng lượng lớn dần
@@ -1061,6 +1097,7 @@ class GameScene extends Phaser.Scene {
             this.updateResourceHUD();
             this.updateEnergyBarVisual();
         } else {
+               if (this.sfx.lose) this.sfx.lose.play(); // TIẾNG THUA TRẬN
             rewardText = "Lực chiến quá yếu!\nHãy về chặt cây Rèn đồ thêm!";
         }
         
