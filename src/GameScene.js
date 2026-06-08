@@ -8,6 +8,43 @@ class GameScene extends Phaser.Scene {
             this.add.image(270, 480, 'bg').setDisplaySize(540, 960).setDepth(0);
         }
 
+        // 1. TẢI DỮ LIỆU TỪ TRÌNH DUYỆT (LOAD GAME)
+        // =======================================================
+        let savedData = localStorage.getItem('idleChopChopSave');
+
+        if (savedData) {
+            // NẾU CÓ DỮ LIỆU CŨ: Ép kiểu từ văn bản thành Object lại
+            this.player = JSON.parse(savedData);
+            console.log("Đã nạp lại tiến trình game cũ!");
+        } else {
+            // NẾU CHƯA CHƠI BAO GIỜ: Tạo dữ liệu mặc định ban đầu
+            this.player = {
+                level: 1,
+                exp: 0,
+                gold: 200, 
+                treeLevel: 1, 
+                combatPower: 100,
+                energy: 50,      
+                maxEnergy: 50,   
+                equipment: {
+                    weapon: null, hat: null, clothes: null, belt: null,
+                    shoes: null, ring: null, bracelet: null, necklace: null,
+                    jade: null, amulet: null, mirror: null, seal: null
+                },
+                stats: {
+                    hp: 100, atk: 20, def: 10,
+                    crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
+                    k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
+                },
+                activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
+                spiritList: [
+                    { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
+                    { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
+                ]
+            };
+            console.log("Đã tạo nhân vật mới!");
+        }
+
         // =======================================================
         // 1. DATABASE: DỮ LIỆU NGƯỜI CHƠI (CORE STATE)
         // =======================================================
@@ -47,32 +84,37 @@ class GameScene extends Phaser.Scene {
         this.rarityNames = { common: 'Thường', uncommon: 'Ưu Tú', rare: 'Hiếm', epic: 'Ưu Việt', legendary: 'Huyền Thoại', mythic: 'Thần Thoại' };
         this.rarityColors = { common: '#ffffff', uncommon: '#4caf50', rare: '#2196f3', epic: '#9c27b0', legendary: '#ff9800', mythic: '#f44336' };
 
-        // BẢNG TỶ LỆ GACHA MỐC CHUẨN
+       // MA TRẬN TỶ LỆ RƠI ĐỒ 10 CẤP TOÀN DIỆN (ĐÃ CÂN BẰNG)
         this.treeDropRates = {
-            1:  { common: 0.80, uncommon: 0.20, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
-            5:  { common: 0.40, uncommon: 0.40, rare: 0.15, epic: 0.05, legendary: 0.00, mythic: 0.00 },
-            10: { common: 0.10, uncommon: 0.30, rare: 0.35, epic: 0.20, legendary: 0.04, mythic: 0.01 }
+            1:  { common: 0.90, uncommon: 0.10, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
+            2:  { common: 0.80, uncommon: 0.20, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
+            3:  { common: 0.70, uncommon: 0.30, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
+            4:  { common: 0.60, uncommon: 0.39, rare: 0.01, epic: 0.00, legendary: 0.00, mythic: 0.00 }, // Xanh dương xuất hiện 1%
+            5:  { common: 0.50, uncommon: 0.439, rare: 0.05, epic: 0.01, legendary: 0.001, mythic: 0.00 }, // Tím xuất hiện 1%, Cam xuất hiện 0.1%
+            6:  { common: 0.40, uncommon: 0.439, rare: 0.10, epic: 0.05, legendary: 0.011, mythic: 0.00 },
+            7:  { common: 0.30, uncommon: 0.40, rare: 0.20, epic: 0.08, legendary: 0.02, mythic: 0.00 },
+            8:  { common: 0.20, uncommon: 0.35, rare: 0.30, epic: 0.11, legendary: 0.04, mythic: 0.00 },
+            9:  { common: 0.15, uncommon: 0.25, rare: 0.35, epic: 0.189, legendary: 0.06, mythic: 0.001 }, // Đỏ xuất hiện 0.1%
+            10: { common: 0.10, uncommon: 0.20, rare: 0.35, epic: 0.24, legendary: 0.10, mythic: 0.01 }  // Đỏ tăng lên 1%
         };
 
         this.isChopping = false;
         this.isPopupOpen = false;
         this.hudSlots = {};
 
-        this.treeUpgradeCosts = [0, 100, 300, 800, 2000, 5000, 12000, 25000, 50000, 100000, 9999999];
+        this.treeUpgradeCosts = [0, 100, 300, 600, 1500, 3000, 5000, 8500, 12000, 17000, 25000];
 
         this.createGameUI();
         this.createEquipmentSlotsHUD(); 
         this.recalculateCombatPower();
         this.updateResourceHUD(); 
 
+         this.energyRegenCountdown = 6; // 6 giây hồi 1 năng lượng
+        
         this.time.addEvent({
-            delay: 12000,
-            callback: () => {
-                if (this.player.energy < this.player.maxEnergy) {
-                    this.player.energy++;
-                    this.updateEnergyBarVisual();
-                }
-            },
+            delay: 1000, // Chạy mỗi 1 giây (1000ms) để đếm ngược
+            callback: this.updateEnergyRegen,
+            callbackScope: this,
             loop: true
         });
     }
@@ -107,21 +149,29 @@ class GameScene extends Phaser.Scene {
 
         this.sacredTree.on('pointerdown', this.chopTree, this);
 
-        // Cột năng lượng
+       // 7. CỘT THỂ LỰC (Đã chuyển sang dùng tâm đáy) & BỘ ĐẾM THỜI GIAN
         this.energyBarBg = this.add.rectangle(510, 380, 16, 260, 0x333333).setStrokeStyle(2, 0xffffff).setDepth(10);
-        this.energyBarFill = this.add.rectangle(510, 510, 16, 260, 0x4caf50).setDepth(11); 
+        
+        // Đặt Origin về (0.5, 1) để thanh năng lượng rút từ trên xuống dưới
+        this.energyBarFill = this.add.rectangle(510, 510, 16, 260, 0x4caf50).setOrigin(0.5, 1).setDepth(11); 
         
         this.buyEnergyBtn = this.add.rectangle(510, 220, 35, 35, 0xff9800).setStrokeStyle(2, 0xffffff).setInteractive({ useHandCursor: true }).setDepth(10);
         this.add.text(510, 220, '+⚡', { font: 'bold 16px Arial', fill: '#fff' }).setOrigin(0.5).setDepth(11);
         this.buyEnergyBtn.on('pointerdown', () => this.showBuyEnergyPopup());
 
+        // Dòng chữ đếm ngược thời gian hồi (Đặt ở bên trái cột năng lượng)
+        this.energyTimerText = this.add.text(440, 300, 'Hồi sau:\n6s', {
+            font: 'bold 12px Arial', fill: '#aaaaaa', align: 'center', lineSpacing: 4
+        }).setOrigin(0.5).setDepth(10);
+
         this.updateEnergyBarVisual();
     }
 
-    updateEnergyBarVisual() {
+   updateEnergyBarVisual() {
         let ratio = this.player.energy / this.player.maxEnergy;
-        this.energyBarFill.height = 260 * ratio;
-        this.energyBarFill.y = 380 + (130 * (1 - ratio)); 
+        // Giới hạn tỉ lệ từ 0 đến 1 đề phòng lỗi âm hoặc vượt quá tối đa
+        ratio = Phaser.Math.Clamp(ratio, 0, 1); 
+        this.energyBarFill.scaleY = ratio; 
     }
 
  createEquipmentSlotsHUD() {
@@ -210,6 +260,16 @@ class GameScene extends Phaser.Scene {
 
     chopTree() {
         if (this.isChopping || this.isPopupOpen) return; 
+
+            // --- SỬA LỖI: Khóa chặt cây ngay lập tức nếu hết năng lượng ---
+        if (this.player.energy <= 0) {
+            this.showFloatingText(270, 450, "HẾT THỂ LỰC! HÃY MUA THÊM!", "#ff3333");
+            return;
+        }
+
+        this.player.energy--; 
+        this.updateEnergyBarVisual(); 
+
         this.isChopping = true;
 
         this.tweens.add({
@@ -239,16 +299,17 @@ class GameScene extends Phaser.Scene {
     // =======================================================
     // HÀM LÀM TRÒN TỶ LỆ RƠI ĐỒ THEO CẤP CÂY AN TOÀN (DDA CHUẨN)
     // =======================================================
-    getDropRatesByTreeLevel(level) {
-        if (level >= 10) return this.treeDropRates[10];
-        if (level >= 5) return this.treeDropRates[5];
-        return this.treeDropRates[1]; // Trả về tỷ lệ cấp 1 cho các cấp 2, 3, 4
-    }
+    // getDropRatesByTreeLevel(level) {
+    //     if (level >= 10) return this.treeDropRates[10];
+    //     if (level >= 5) return this.treeDropRates[5];
+    //     return this.treeDropRates[1]; // Trả về tỷ lệ cấp 1 cho các cấp 2, 3, 4
+    // }
 
     generateRandomDrop() {
         // --- SỬA LỖI TRUY XUẤT: Gọi hàm làm tròn tỷ lệ an toàn ---
-        let rates = this.getDropRatesByTreeLevel(this.player.treeLevel);
-        
+       // let rates = this.getDropRatesByTreeLevel(this.player.treeLevel);
+        let rates = this.treeDropRates[this.player.treeLevel];
+
         let rand = Math.random();
         let selectedRarity = 'common';
         let cumulative = 0;
@@ -353,18 +414,33 @@ class GameScene extends Phaser.Scene {
             this.updateEquipmentSlotsVisual(); 
             this.isPopupOpen = false; 
             popup.destroy();
+
+             this.saveGame();
         });
 
         // NÚT BÁN
-        let sellBtn = this.add.rectangle(370, 590, 150, 45, 0xf44336).setInteractive({ useHandCursor: true });
+         let sellBtn = this.add.rectangle(370, 590, 150, 45, 0xf44336).setInteractive({ useHandCursor: true });
         let sellText = this.add.text(370, 590, 'BÁN', { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
         sellBtn.on('pointerdown', () => {
-            let coinGained = (this.rarities.indexOf(newItem.rarity) + 1) * 10;
+            // --- BẢN ĐỒ GIÁ BÁN PHẨM CHẤT CHUẨN XÁC THEO YÊU CẦU CỦA CẬU ---
+            const rarityPrices = {
+                common: 10,
+                uncommon: 20,
+                rare: 40,       // Xanh dương: 40 Linh thạch
+                epic: 80,       // Tím: 80 Linh thạch (gấp đôi xanh dương)
+                legendary: 160, // Cam: 160 Linh thạch (gấp đôi tím)
+                mythic: 320     // Đỏ: 320 Linh thạch (gấp đôi cam)
+            };
+
+            let coinGained = rarityPrices[newItem.rarity];
             let expGained = 15; 
+            
             this.player.gold += coinGained;
             this.gainExp(expGained);
             this.isPopupOpen = false; 
             popup.destroy();
+
+             this.saveGame();
         });
 
         popup.add([equipBtn, equipText, sellBtn, sellText]);
@@ -397,6 +473,8 @@ class GameScene extends Phaser.Scene {
 
         this.showFloatingText(270, 380, `Cây Lên Cấp ${this.player.treeLevel}!`, '#ffeb3b');
         this.updateResourceHUD();
+
+         this.saveGame();
     }
 
     showcreateEquipmentofilePopup() {
@@ -462,13 +540,13 @@ class GameScene extends Phaser.Scene {
 
         let buyQuantity = 1;
 
-        let qtyText = this.add.text(270, 440, `Số lượng: ${buyQuantity} Gói (⚡50)`, { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
-        let priceText = this.add.text(270, 480, `Giá: 500 Linh Thạch 💎`, { font: '16px Arial', fill: '#aaaaaa' }).setOrigin(0.5);
+        let qtyText = this.add.text(270, 440, `Số lượng: ${buyQuantity} Gói (⚡25)`, { font: 'bold 18px Arial', fill: '#ffffff' }).setOrigin(0.5);
+        let priceText = this.add.text(270, 480, `Giá: 250 Linh Thạch 💎`, { font: '16px Arial', fill: '#aaaaaa' }).setOrigin(0.5);
         popup.add([qtyText, priceText]);
 
         const updatePopupText = () => {
-            qtyText.setText(`Số lượng: ${buyQuantity} Gói (⚡${buyQuantity * 50})`);
-            priceText.setText(`Giá: ${buyQuantity * 500} Linh Thạch 💎`);
+            qtyText.setText(`Số lượng: ${buyQuantity} Gói (⚡${buyQuantity * 25})`);
+            priceText.setText(`Giá: ${buyQuantity * 250} Linh Thạch 💎`);
         };
 
         let btnMinus = this.add.rectangle(140, 440, 35, 35, 0x555555).setInteractive({ useHandCursor: true });
@@ -491,17 +569,19 @@ class GameScene extends Phaser.Scene {
         let confirmBtn = this.add.rectangle(180, 560, 120, 40, 0x4caf50).setInteractive({ useHandCursor: true });
         let confirmText = this.add.text(180, 560, 'XÁC NHẬN', { font: 'bold 16px Arial', fill: '#ffffff' }).setOrigin(0.5);
         confirmBtn.on('pointerdown', () => {
-            let totalCost = buyQuantity * 500;
+            let totalCost = buyQuantity * 250;
             if (this.player.gold < totalCost) {
                 this.showFloatingText(270, 480, "THIẾU LINH THẠCH!", "#ff3333");
             } else {
                 this.player.gold -= totalCost;
-                this.player.energy += buyQuantity * 50; 
+                this.player.energy += buyQuantity * 25; 
                 this.updateEnergyBarVisual();
                 this.updateResourceHUD();
                 this.isPopupOpen = false;
                 popup.destroy();
-                this.showFloatingText(270, 380, `Mua Thành Công ${buyQuantity * 50} Thể Lực!`, '#4caf50');
+                this.showFloatingText(270, 380, `Mua Thành Công ${buyQuantity * 25} Thể Lực!`, '#4caf50');
+
+                 this.saveGame();
             }
         });
 
@@ -577,5 +657,42 @@ class GameScene extends Phaser.Scene {
 
         this.player.combatPower = Math.floor(this.player.stats.atk * 5 + this.player.stats.hp * 1 + totalSpecialCP);
         this.cpText.setText(`LỰC CHIẾN: ${this.player.combatPower}`);
+    }
+
+    // --- THÊM HÀM ĐẾM NGƯỢC HỒI THỂ LỰC MỖI 1 GIÂY ---
+    updateEnergyRegen() {
+        // Nếu thể lực đã đầy thì hiển thị chữ Đầy và không đếm nữa
+        if (this.player.energy >= this.player.maxEnergy) {
+            this.energyTimerText.setText("Thể Lực\nĐầy");
+            this.energyRegenCountdown = 6; // Reset bộ đếm chờ sẵn
+            return;
+        }
+
+        this.energyRegenCountdown--;
+        
+        if (this.energyRegenCountdown <= 0) {
+            this.energyRegenCountdown = 6; // Reset bộ đếm
+            this.player.energy++;
+            this.updateEnergyBarVisual();
+            this.updateResourceHUD();
+            this.showFloatingText(510, 480, "+1 ⚡", "#4caf50");
+        }
+
+        // Cập nhật chữ hiển thị giây đếm ngược
+        this.energyTimerText.setText(`Hồi sau:\n${this.energyRegenCountdown}s`);
+    }
+
+    // =======================================================
+    // HỆ THỐNG LƯU TRỮ VÀ TẢI DỮ LIỆU (LOCAL STORAGE)
+    // =======================================================
+    
+    saveGame() {
+        // Chuyển toàn bộ object Player thành chuỗi văn bản JSON
+        let saveData = JSON.stringify(this.player);
+        
+        // Lưu vào bộ nhớ cục bộ của trình duyệt với chìa khóa (key) là 'idleChopChopSave'
+        localStorage.setItem('idleChopChopSave', saveData);
+        
+        console.log("Đã lưu tiến trình game!");
     }
 }
