@@ -48,30 +48,30 @@ class GameScene extends Phaser.Scene {
         // =======================================================
         // 1. DATABASE: DỮ LIỆU NGƯỜI CHƠI (CORE STATE)
         // =======================================================
-        this.player = {
-            level: 1,
-            exp: 0,
-            gold: 200, 
-            treeLevel: 1, 
-            combatPower: 100,
-            energy: 50,      
-            maxEnergy: 50,   
-            equipment: {
-                weapon: null, hat: null, clothes: null, belt: null,
-                shoes: null, ring: null, bracelet: null, necklace: null,
-                jade: null, amulet: null, mirror: null, seal: null
-            },
-            stats: {
-                hp: 100, atk: 20, def: 10,
-                crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
-                k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
-            },
-            activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
-            spiritList: [
-                { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
-                { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
-            ]
-        };
+        // this.player = {
+        //     level: 1,
+        //     exp: 0,
+        //     gold: 200, 
+        //     treeLevel: 1, 
+        //     combatPower: 100,
+        //     energy: 50,      
+        //     maxEnergy: 50,   
+        //     equipment: {
+        //         weapon: null, hat: null, clothes: null, belt: null,
+        //         shoes: null, ring: null, bracelet: null, necklace: null,
+        //         jade: null, amulet: null, mirror: null, seal: null
+        //     },
+        //     stats: {
+        //         hp: 100, atk: 20, def: 10,
+        //         crit: 0, combo: 0, counter: 0, stun: 0, dodge: 0, lifesteal: 0,
+        //         k_crit: 0, k_combo: 0, k_counter: 0, k_stun: 0, k_dodge: 0, k_lifesteal: 0
+        //     },
+        //     activePet: { name: "Tiểu Long Quy", level: 1, atkBonusPercent: 10, specialStat: "stun", specialValue: 5.5 },
+        //     spiritList: [
+        //         { name: "Cửu Vĩ Linh Hồ", level: 1, resistStat: "k_crit", resistValue: 8.0 }, 
+        //         { name: "Hắc Tề Thiên", level: 1, resistStat: "k_stun", resistValue: 4.5 }   
+        //     ]
+        // };
 
         this.equipmentTypes = ['weapon', 'hat', 'clothes', 'belt', 'shoes', 'ring', 'bracelet', 'necklace', 'jade', 'amulet', 'mirror', 'seal'];
         this.slotAbbreviations = {
