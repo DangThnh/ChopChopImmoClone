@@ -127,7 +127,7 @@ class GameScene extends Phaser.Scene {
         this.createGameUI();
 
         // Khởi tạo Giao diện và Cập nhật chỉ số từ bản Save
-        this.createGameUI();
+        
         this.createEquipmentSlotsHUD(); 
         
         // --- CHÚ Ý: Bắt buộc phải vẽ lại Đồ hiển thị (Visual) sau khi Load file Save ---
@@ -1112,9 +1112,25 @@ class GameScene extends Phaser.Scene {
 
         this.battleContainer.add([resultPanel, rTitle, rReward, closeBtn, closeText]);
 
-        closeBtn.on('pointerdown', () => {
+      closeBtn.on('pointerdown', () => {
+            // 1. Phá hủy sàn đấu trường
             this.battleContainer.destroy(); 
             this.isPopupOpen = false;       
+
+            // 2. DỌN SẠCH TẤT CẢ ÂM THANH LIÊN QUAN ĐẾN TRẬN ĐẤU
+            this.sound.stopByKey('bgm_battle');
+            
+            // Ép buộc dừng luôn tiếng Win/Lose nếu nó vẫn đang rên rỉ
+            if (this.sfx.win) this.sfx.win.stop();
+            if (this.sfx.lose) this.sfx.lose.stop();
+
+            // 3. BẬT LẠI NHẠC NỀN CHÍNH MỘT CÁCH SẠCH SẼ
+            if (this.cache.audio.exists('bgm_main')) {
+                // Kiểm tra chắc chắn nhạc main chưa bật thì mới bật
+                if (!this.sound.get('bgm_main') || !this.sound.get('bgm_main').isPlaying) {
+                    this.sound.play('bgm_main', { loop: true, volume: 0.4 });
+                }
+            }
         });
     }
 
