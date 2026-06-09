@@ -80,6 +80,22 @@ class GameScene extends Phaser.Scene {
             lifesteal: 'Hút Máu'
         };
 
+        // --- THÊM TỪ ĐIỂN DỊCH THUẬT TÊN 12 TRANG BỊ TIẾNG VIỆT ---
+        this.equipNames = {
+            weapon: 'Vũ Khí',
+            hat: 'Mũ',
+            clothes: 'Áo',
+            belt: 'Đai Lưng',
+            shoes: 'Giày',
+            ring: 'Nhẫn',
+            bracelet: 'Vòng Tay',
+            necklace: 'Vòng Cổ',
+            jade: 'Ngọc Bội',
+            amulet: 'Bùa Chú',
+            mirror: 'Gương Thần',
+            seal: 'Ấn Chú'
+        };
+
         this.treeDropRates = {
             1:  { common: 0.90, uncommon: 0.10, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
             2:  { common: 0.80, uncommon: 0.20, rare: 0.00, epic: 0.00, legendary: 0.00, mythic: 0.00 },
@@ -284,12 +300,11 @@ class GameScene extends Phaser.Scene {
         };
 
         let contentText = "";
-        let translatedType = typeNames[type] || type.toUpperCase();
+       // --- SỬA Ở ĐÂY: Gọi trực tiếp từ điển toàn cục của game ---
+        let translatedType = this.equipNames[type] || type.toUpperCase();
 
         if (item) {
-            // SỬA: Đọc tên Tiếng Việt từ this.statNames cho dòng thuộc tính ẩn
             let specialText = item.specialStat ? `${this.statNames[item.specialStat]}: +${item.specialValue}%` : '';
-            
             contentText = `${translatedType} (Lv.${item.level})\n` +
                           `Phẩm: ${this.rarityNames[item.rarity]}\n` +
                           `Công: +${item.atk}\n` +
@@ -421,9 +436,16 @@ class GameScene extends Phaser.Scene {
 
         let rarityText = this.rarityNames[newItem.rarity].toUpperCase();
         let rarityColor = this.rarityColors[newItem.rarity];
-        let title = this.add.text(270, 220, `NHẬN ĐỒ: ${newItem.type.toUpperCase()}\n(${rarityText} - Lv.${newItem.level})`, { 
+       // let title = this.add.text(270, 220, `NHẬN ĐỒ: ${newItem.type.toUpperCase()}\n(${rarityText} - Lv.${newItem.level})`, { 
+        //    font: 'bold 22px Arial', fill: rarityColor, align: 'center'
+      //  }).setOrigin(0.5);
+
+       let translatedName = this.equipNames[newItem.type] || newItem.type.toUpperCase();
+
+        let title = this.add.text(270, 220, `NHẬN ĐỒ: ${translatedName.toUpperCase()}\n(${rarityText} - Lv.${newItem.level})`, { 
             font: 'bold 22px Arial', fill: rarityColor, align: 'center'
         }).setOrigin(0.5);
+
         popup.add(title);
 
         let oldAtk = currentItem ? currentItem.atk : 0;
